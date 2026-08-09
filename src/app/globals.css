@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Victor Mono";
+  src: url("/fonts/victor-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Victor Mono";
+  src: url("/fonts/victor-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Victor Mono";
+  src: url("/fonts/victor-mono-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --hh-green: #0b6839;
+  --hh-green-deep: #074a28;
+  --hh-yellow: #fee101;
+  --hh-yellow-soft: #edd723;
+  --hh-cream: #fffbe8;
+  --hh-ink: #0a0a0a;
+  --hh-pink: #ff0080;
+  --hh-red: #fb2c36;
+  --background: var(--hh-cream);
+  --foreground: var(--hh-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-hh-green: var(--hh-green);
+  --color-hh-yellow: var(--hh-yellow);
+  --color-hh-cream: var(--hh-cream);
+  --color-hh-pink: var(--hh-pink);
+  --color-hh-red: var(--hh-red);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: "Victor Mono", var(--font-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--hh-cream);
+  color: var(--hh-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  min-height: 100%;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 100% -10%, rgba(254, 225, 1, 0.28), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 0% 100%, rgba(11, 104, 57, 0.16), transparent 50%),
+    linear-gradient(180deg, #fffbe8 0%, #fff8d6 48%, #f3efc8 100%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-rise {
+  animation: hero-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-rise-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.hero-rise-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.hero-rise-delay-3 {
+  animation-delay: 0.32s;
+}
+
+.studio-in {
+  animation: fade-up 0.7s ease both;
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 28s linear infinite;
+}
+
+.live-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 2px solid rgba(11, 104, 57, 0.18);
+  background: #fffbe8;
+  padding: 0.7rem 0.9rem;
+  color: #0a0a0a;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field::placeholder {
+  color: rgba(10, 10, 10, 0.35);
+}
+
+.field:focus {
+  border-color: #0b6839;
+  box-shadow: 0 0 0 3px rgba(254, 225, 1, 0.45);
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-family: "Victor Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0b6839;
+}
+
+.btn-primary {
+  flex: 1;
+  border-radius: 0.85rem;
+  background: #fee101;
+  border: 2px solid #0a0a0a;
+  padding: 0.9rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0a0a0a;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn-primary:hover:enabled {
+  background: #edd723;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn-share {
+  flex: 1;
+  border-radius: 0.85rem;
+  background: #ff0080;
+  border: 2px solid #0a0a0a;
+  padding: 0.9rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: white;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-share:hover:enabled {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.btn-share:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise,
+  .ticker-track,
+  .live-dot,
+  .studio-in {
+    animation: none;
+  }
+}
