@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import { skillShort } from "@/lib/skills";
+import { DEPLOY_HOST } from "@/lib/site";
 
 export type PhotoTransform = { x: number; y: number; scale: number };
 
@@ -14,6 +15,13 @@ type IdCardProps = {
   qrDataUrl?: string | null;
   photo: PhotoTransform;
 };
+
+const SIGNS = [
+  { label: "COCONUT BEACH", dir: "r", tone: "pink" },
+  { label: "SURF POINT", dir: "l", tone: "yellow" },
+  { label: "HH STUDIO", dir: "r", tone: "pink" },
+  { label: "MORE SIGNAL", dir: "l", tone: "yellow" },
+] as const;
 
 const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
   { photoUrl, name, stack, builderTitle, skills, qrDataUrl, photo },
@@ -34,7 +42,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
   return (
     <div
       ref={ref}
-      className="relative w-full max-w-[380px] overflow-hidden border-[7px] border-black bg-[#fffbe8] text-black shadow-[10px_10px_0_#0b6839]"
+      className="relative flex w-full max-w-[380px] flex-col overflow-hidden border-[7px] border-black bg-[#fffbe8] text-black shadow-[10px_10px_0_#0b6839]"
       style={{ aspectRatio: "3 / 4.6" }}
     >
       {/* lanyard hole */}
@@ -48,7 +56,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
       </div>
 
       {/* PHOTO HERO */}
-      <div className="relative h-[46%] overflow-hidden border-b-[4px] border-black bg-[#0b6839]">
+      <div className="relative h-[40%] shrink-0 overflow-hidden border-b-[4px] border-black bg-[#0b6839]">
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -74,7 +82,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
 
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+        <div className="absolute top-3 left-3 z-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/goa_hindi.svg"
@@ -109,12 +117,42 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
         </div>
       </div>
 
+      {/* tropical strip — coconut beach art + directional signs */}
+      <div className="relative h-[54px] shrink-0 overflow-hidden border-b-[3px] border-black">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/coconut-beach.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-[center_62%]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/15 to-black/40" />
+        <div className="relative z-10 flex h-full items-center gap-1.5 overflow-hidden px-2">
+          {SIGNS.map((s) => (
+            <span
+              key={s.label}
+              className={`inline-flex shrink-0 items-center border-[1.5px] border-black px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[7px] font-bold tracking-wide uppercase ${
+                s.tone === "pink" ? "bg-[#ff0080] text-[#fffbe8]" : "bg-[#fee101] text-black"
+              }`}
+              style={{
+                clipPath:
+                  s.dir === "r"
+                    ? "polygon(0 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 0 100%)"
+                    : "polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%)",
+              }}
+            >
+              {s.dir === "l" ? "◀ " : ""}
+              {s.label}
+              {s.dir === "r" ? " ▶" : ""}
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* BODY */}
-      <div className="relative flex h-[54%] flex-col">
-        <div className="flex flex-1 gap-0">
-          {/* skill spine */}
-          <div className="flex w-11 shrink-0 flex-col gap-1.5 border-r-[3px] border-black bg-[#0b6839] px-1.5 py-3">
-            {chips.slice(0, 5).map((skill) => (
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 gap-0">
+          <div className="flex w-11 shrink-0 flex-col gap-1.5 border-r-[3px] border-black bg-[#0b6839] px-1.5 py-2.5">
+            {chips.slice(0, 4).map((skill) => (
               <div
                 key={skill}
                 title={skill}
@@ -125,13 +163,13 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
             ))}
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col px-3.5 pt-3 pb-2">
+          <div className="flex min-w-0 flex-1 flex-col px-3.5 pt-2.5 pb-2">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-[family-name:var(--font-mono)] text-[9px] tracking-[0.2em] text-[#0b6839] uppercase">
                   Builder class
                 </p>
-                <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[1.85rem] leading-[0.92] tracking-tight lowercase">
+                <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[1.7rem] leading-[0.92] tracking-tight lowercase">
                   {builderTitle || "stack overflower"}
                   <span className="text-[#ff0080]">.</span>
                 </h2>
@@ -144,8 +182,8 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
               />
             </div>
 
-            <div className="mt-2.5 inline-flex max-w-full self-start border-[2.5px] border-black bg-[#fee101] px-2.5 py-1">
-              <p className="truncate font-[family-name:var(--font-display)] text-[1.2rem] leading-none">
+            <div className="mt-2 inline-flex max-w-full self-start border-[2.5px] border-black bg-[#fee101] px-2.5 py-1">
+              <p className="truncate font-[family-name:var(--font-display)] text-[1.15rem] leading-none">
                 {name || "Your Name"}
               </p>
             </div>
@@ -154,7 +192,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
               {stack ? `${stack} · ` : ""}Residency builder
             </p>
 
-            <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-2">
               <div className="border-[2px] border-black bg-white px-2 py-1.5">
                 <p className="font-[family-name:var(--font-mono)] text-[8px] tracking-[0.14em] text-black/40 uppercase">
                   Location
@@ -175,8 +213,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
           </div>
         </div>
 
-        {/* footer strip */}
-        <div className="mt-auto flex items-center justify-between gap-2 border-t-[4px] border-black bg-[#0b6839] px-3 py-2.5">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t-[4px] border-black bg-[#0b6839] px-3 py-2">
           <div className="flex items-center gap-2">
             {qrDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -184,10 +221,10 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
                 src={qrDataUrl}
                 alt=""
                 className="border-[2px] border-black bg-white p-0.5"
-                style={{ width: 46, height: 46 }}
+                style={{ width: 44, height: 44 }}
               />
             ) : (
-              <div className="flex h-[46px] w-[46px] items-center justify-center border-[2px] border-dashed border-[#fee101]/40 text-[8px] text-[#fee101]/60">
+              <div className="flex h-11 w-11 items-center justify-center border-[2px] border-dashed border-[#fee101]/40 text-[8px] text-[#fee101]/60">
                 QR
               </div>
             )}
@@ -197,6 +234,9 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(function IdCard(
               </p>
               <p className="mt-0.5 border border-black bg-[#fee101] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold text-black">
                 #FrameInGoa
+              </p>
+              <p className="mt-1 max-w-[150px] truncate font-[family-name:var(--font-mono)] text-[7px] tracking-wide text-[#fee101]/85">
+                {DEPLOY_HOST}
               </p>
             </div>
           </div>

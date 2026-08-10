@@ -7,7 +7,6 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
-  const wantsOg = new URL(request.url).searchParams.get("v") === "og";
   const asDownload = new URL(request.url).searchParams.get("download") === "1";
 
   const pass = await loadPass(id);
@@ -15,7 +14,8 @@ export async function GET(request: Request, { params }: Params) {
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const bytes = wantsOg ? pass.og : pass.card;
+  // Always serve the ID card / PFP frame alone.
+  const bytes = pass.card;
   const slug =
     pass.meta.name.replace(/\s+/g, "-").toLowerCase().replace(/[^a-z0-9-_]/g, "") ||
     "pass";

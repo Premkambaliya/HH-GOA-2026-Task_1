@@ -1,15 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { toJpeg, toPng } from "html-to-image";
 import QRCode from "qrcode";
 import IdCard, { type PhotoTransform } from "./IdCard";
 import PfpFrame from "./PfpFrame";
-import OgComposite from "./OgComposite";
 import { pickBuilderTitle, randomBuilderTitle } from "@/lib/builderTitles";
 import { parseSkills } from "@/lib/skills";
 import { downloadBlob, exportPixelRatio } from "@/lib/download";
+import { DEPLOY_URL } from "@/lib/site";
 
 type Mode = "id" | "pfp";
 
@@ -77,12 +76,18 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
 export default function Generator() {
   const cardRef = useRef<HTMLDivElement>(null);
-  const ogRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const warmedUp = useRef(false);
 
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const dragRef = useRef({ startX: 0, startY: 0, origX: 0, origY: 0 });
+  const dragRef = useRef({
+    startX: 0,
+    startY: 0,
+    origX: 0,
+    origY: 0,
+    armed: false,
+    pointerType: "mouse" as string,
+  });
   const pinchRef = useRef<{ distance: number; scale: number } | null>(null);
   const photoStateRef = useRef<PhotoTransform>(INITIAL_PHOTO);
 
@@ -95,17 +100,21 @@ export default function Generator() {
   const [photo, setPhoto] = useState<PhotoTransform>(INITIAL_PHOTO);
   const [accent, setAccent] = useState(ACCENTS[0]);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [ogCardUrl, setOgCardUrl] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState<null | "download" | "share">(null);
   const [error, setError] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const skills = parseSkills(skillsInput);
   const ready = Boolean(photoUrl && name.trim());
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    const base =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (typeof window !== "undefined" && !window.location.hostname.includes("localhost")
+        ? window.location.origin
+        : DEPLOY_URL);
     QRCode.toDataURL(base, {
       margin: 1,
       width: 160,
@@ -166,7 +175,6 @@ export default function Generator() {
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (!photoUrl) return;
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
       const current = photoStateRef.current;
@@ -176,8 +184,24 @@ export default function Generator() {
           startY: e.clientY,
           origX: current.x,
           origY: current.y,
+          // Mouse can grab immediately; touch waits so the page can still scroll.
+          armed: e.pointerType !== "touch",
+          pointerType: e.pointerType,
         };
+        if (e.pointerType !== "touch") {
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        }
       } else if (pointers.current.size === 2) {
+        // Pinch zoom — take over touches so the page doesn't scroll mid-gesture.
+        dragRef.current.armed = true;
+        const target = e.currentTarget as HTMLElement;
+        for (const id of pointers.current.keys()) {
+          try {
+            target.setPointerCapture(id);
+          } catch {
+            /* already captured or released */
+          }
+        }
         const [a, b] = Array.from(pointers.current.values());
         pinchRef.current = {
           distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
@@ -200,10 +224,41 @@ export default function Generator() {
       return;
     }
 
+    const drag = dragRef.current;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+
+    // On touch: vertical flicks scroll the page; pan only after clear framing intent.
+    if (!drag.armed && drag.pointerType === "touch") {
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      if (absX < 10 && absY < 10) return;
+
+      // Mostly vertical → let the browser scroll; drop this pointer.
+      if (absY > absX * 1.15) {
+        pointers.current.delete(e.pointerId);
+        return;
+      }
+
+      drag.armed = true;
+      drag.startX = e.clientX;
+      drag.startY = e.clientY;
+      drag.origX = photoStateRef.current.x;
+      drag.origY = photoStateRef.current.y;
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    if (!drag.armed) return;
+
     setPhoto((p) => ({
       ...p,
-      x: dragRef.current.origX + (e.clientX - dragRef.current.startX),
-      y: dragRef.current.origY + (e.clientY - dragRef.current.startY),
+      x: drag.origX + (e.clientX - drag.startX),
+      y: drag.origY + (e.clientY - drag.startY),
     }));
   }, []);
 
@@ -211,7 +266,6 @@ export default function Generator() {
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) pinchRef.current = null;
 
-    // Re-anchor the drag origin so releasing one finger doesn't make the photo jump.
     const remaining = Array.from(pointers.current.values())[0];
     if (remaining) {
       dragRef.current = {
@@ -219,7 +273,11 @@ export default function Generator() {
         startY: remaining.y,
         origX: photoStateRef.current.x,
         origY: photoStateRef.current.y,
+        armed: true,
+        pointerType: dragRef.current.pointerType,
       };
+    } else {
+      dragRef.current.armed = false;
     }
   }, []);
 
@@ -284,54 +342,20 @@ export default function Generator() {
     if (!ready || busy) return;
     setBusy("share");
     setError(null);
+    setShareCopied(false);
     try {
       const cardDataUrl = await captureCard("jpeg");
-
-      // Commit the card into the off-screen 1200x630 canvas before snapshotting it.
-      flushSync(() => setOgCardUrl(cardDataUrl));
-      let ogDataUrl: string | null = null;
-      if (ogRef.current) {
-        await waitForPaint(ogRef.current);
-        ogDataUrl = await toJpeg(ogRef.current, {
-          pixelRatio: 1,
-          backgroundColor: "#0b6839",
-          quality: 0.9,
-        });
-      }
 
       const title =
         mode === "id"
           ? builderTitle.trim() || pickBuilderTitle(name, stack || skillsInput)
           : "";
-      const label = mode === "id" ? "Builder ID" : "PFP frame";
-      const caption = `Just locked my HH Goa 2026 ${label} ✦\n\n${
-        title ? `${title} · ` : ""
-      }${name.trim()}\n\n#FrameInGoa`;
 
-      // Phones: attach the real image via the system share sheet (pick X).
-      const file = new File([dataUrlToBlob(cardDataUrl)], fileName.replace(/\.png$/i, ".jpg"), {
-        type: "image/jpeg",
-      });
-      const mobile =
-        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-      if (mobile && navigator.canShare?.({ files: [file], text: caption })) {
-        await navigator.share({
-          files: [file],
-          text: caption,
-          title: "HH Goa 2026 Signal Pass",
-        });
-        return;
-      }
-
-      // Desktop: save without a database + open X with an OG preview link.
       const res = await fetch("/api/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageBase64: cardDataUrl,
-          ogBase64: ogDataUrl,
           name: name.trim(),
           title,
           mode,
@@ -344,23 +368,25 @@ export default function Generator() {
       }
 
       const { id } = (await res.json()) as { id: string };
-      const base = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-      const shareUrl = `${base}/s/${id}`;
+      // Always link to THIS origin — the pass was saved here.
+      const shareUrl = `${window.location.origin}/s/${id}`;
       setShareLink(shareUrl);
-
-      const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-        `${caption}\n\nMake yours →`
-      )}&url=${encodeURIComponent(shareUrl)}`;
-      const opened = window.open(intent, "_blank", "noopener,noreferrer");
-      if (!opened) {
-        // Popup blocked — keep the on-page share link as the fallback.
-        setError("Popup blocked — use the share link below, or allow popups for X.");
-      }
     } catch (e) {
       if ((e as Error)?.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "Share failed. Please try again.");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function copyShareLink() {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1800);
+    } catch {
+      setShareCopied(false);
     }
   }
 
@@ -567,7 +593,7 @@ export default function Generator() {
             onClick={handleShare}
             className="btn-share"
           >
-            {busy === "share" ? "Preparing…" : "Share to X · #FrameInGoa"}
+            {busy === "share" ? "Preparing…" : "Share link · #FrameInGoa"}
           </button>
         </div>
 
@@ -582,12 +608,31 @@ export default function Generator() {
           </p>
         )}
         {shareLink && (
-          <p className="text-sm text-[#0b6839]">
-            Share link:{" "}
-            <a className="break-all font-semibold underline" href={shareLink}>
-              open preview
-            </a>
-          </p>
+          <div className="space-y-2 border-2 border-black bg-white p-3">
+            <p className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.14em] text-[#0b6839] uppercase">
+              Your share link
+            </p>
+            <p className="break-all font-[family-name:var(--font-mono)] text-[12px] text-black">
+              {shareLink}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={copyShareLink}
+                className="border-2 border-black bg-[#fee101] px-3 py-2 text-sm font-bold text-black"
+              >
+                {shareCopied ? "Copied ✓" : "Copy link"}
+              </button>
+              <a
+                href={shareLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex border-2 border-black bg-[#0b6839] px-3 py-2 text-sm font-bold text-[#fffbe8]"
+              >
+                Open preview
+              </a>
+            </div>
+          </div>
         )}
       </section>
 
@@ -603,12 +648,12 @@ export default function Generator() {
 
         <div
           ref={stageRef}
-          className="mx-auto flex w-full max-w-[380px] touch-none justify-center select-none"
+          className="mx-auto flex w-full max-w-[380px] touch-pan-y justify-center select-none"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          style={{ cursor: photoUrl ? "grab" : "default" }}
+          style={{ cursor: photoUrl ? "grab" : "default", touchAction: "pan-y" }}
         >
           {mode === "id" ? (
             <IdCard
@@ -632,17 +677,6 @@ export default function Generator() {
           )}
         </div>
       </section>
-
-      <div aria-hidden className="pointer-events-none fixed top-0 -left-[9999px]">
-        <OgComposite
-          ref={ogRef}
-          cardDataUrl={ogCardUrl}
-          name={name}
-          builderTitle={builderTitle}
-          mode={mode}
-          accent={mode === "pfp" ? accent : "#fee101"}
-        />
-      </div>
     </div>
   );
 }

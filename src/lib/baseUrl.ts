@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 export const siteUrl = (
   process.env.NEXT_PUBLIC_BASE_URL ||
   process.env.URL ||
-  "http://localhost:3000"
+  "https://hh-goa-2026-task1.netlify.app"
 ).replace(/\/+$/, "");
 
 /**

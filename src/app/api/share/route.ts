@@ -16,10 +16,10 @@ function parseDataUrl(value: unknown): { type: string; buffer: Buffer } | null {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    // Only the ID card / PFP frame — never the wide OG composite banner.
     const card = parseDataUrl(body.imageBase64);
-    const og = parseDataUrl(body.ogBase64) ?? card;
 
-    if (!card || !og) {
+    if (!card) {
       return NextResponse.json(
         { error: "A generated image is required" },
         { status: 400 }
@@ -36,8 +36,7 @@ export async function POST(request: Request) {
 
     const id = await savePass({
       card: card.buffer,
-      og: og.buffer,
-      contentType: og.type,
+      contentType: card.type,
       meta: { name, title, mode },
     });
 

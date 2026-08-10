@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import type { PhotoTransform } from "./IdCard";
+import { DEPLOY_HOST } from "@/lib/site";
 
 type PfpFrameProps = {
   photoUrl: string | null;
@@ -51,11 +52,11 @@ const PfpFrame = forwardRef<HTMLDivElement, PfpFrameProps>(function PfpFrame(
         style={{ borderColor: accent }}
       />
       <div
-        className="pointer-events-none absolute bottom-[5.5rem] left-3 h-6 w-6 border-b-[3px] border-l-[3px]"
+        className="pointer-events-none absolute bottom-[7.25rem] left-3 h-6 w-6 border-b-[3px] border-l-[3px]"
         style={{ borderColor: accent }}
       />
       <div
-        className="pointer-events-none absolute right-3 bottom-[5.5rem] h-6 w-6 border-b-[3px] border-r-[3px]"
+        className="pointer-events-none absolute right-3 bottom-[7.25rem] h-6 w-6 border-b-[3px] border-r-[3px]"
         style={{ borderColor: accent }}
       />
 
@@ -71,11 +72,29 @@ const PfpFrame = forwardRef<HTMLDivElement, PfpFrameProps>(function PfpFrame(
         </span>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/90 to-transparent px-3.5 pt-16 pb-3.5">
+      {/* tropical beach ribbon */}
+      <div className="absolute inset-x-0 bottom-[4.75rem] h-11 overflow-hidden border-y-[2.5px] border-black">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/coconut-beach.png"
+          alt=""
+          className="h-full w-full object-cover object-[center_68%]"
+        />
+        <div className="absolute inset-0 flex items-center justify-between gap-2 bg-black/25 px-2.5">
+          <span className="border border-black bg-[#ff0080] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[8px] font-bold tracking-wide text-[#fffbe8] uppercase">
+            Coconut Beach ▶
+          </span>
+          <span className="border border-black bg-[#fee101] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[8px] font-bold tracking-wide text-black uppercase">
+            ◀ Surf Point
+          </span>
+        </div>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/95 to-transparent px-3.5 pt-10 pb-3">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p
-              className="font-[family-name:var(--font-display)] text-[1.65rem] leading-none tracking-tight"
+              className="font-[family-name:var(--font-display)] text-[1.55rem] leading-none tracking-tight"
               style={{ color: accent === "#0b6839" ? "#fee101" : accent }}
             >
               HACKER HOUSE
@@ -86,6 +105,9 @@ const PfpFrame = forwardRef<HTMLDivElement, PfpFrameProps>(function PfpFrame(
             {name ? (
               <p className="mt-1 text-xs text-[#fffbe8]/55">{name}</p>
             ) : null}
+            <p className="mt-1 font-[family-name:var(--font-mono)] text-[8px] tracking-wide text-[#fee101]/80">
+              {DEPLOY_HOST}
+            </p>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

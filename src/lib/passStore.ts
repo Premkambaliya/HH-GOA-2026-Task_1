@@ -23,17 +23,25 @@ function newId() {
   return randomBytes(12).toString("hex");
 }
 
+function onNetlify() {
+  return Boolean(
+    process.env.NETLIFY ||
+      process.env.NETLIFY_BLOBS_CONTEXT ||
+      process.env.NETLIFY_DEV
+  );
+}
+
 async function saveLocal(
   id: string,
   card: Buffer,
-  og: Buffer,
   meta: PassMeta,
   contentType: string
 ) {
   const dir = path.join(LOCAL_ROOT, id);
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, "card.bin"), card);
-  await fs.writeFile(path.join(dir, "og.bin"), og);
+  // Keep og.bin as a copy for older readers.
+  await fs.writeFile(path.join(dir, "og.bin"), card);
   await fs.writeFile(
     path.join(dir, "meta.json"),
     JSON.stringify({ ...meta, contentType })
@@ -46,7 +54,12 @@ async function loadLocal(id: string): Promise<StoredPass | null> {
     const raw = await fs.readFile(path.join(dir, "meta.json"), "utf8");
     const parsed = JSON.parse(raw) as PassMeta & { contentType?: string };
     const card = await fs.readFile(path.join(dir, "card.bin"));
-    const og = await fs.readFile(path.join(dir, "og.bin"));
+    let og = card;
+    try {
+      og = await fs.readFile(path.join(dir, "og.bin"));
+    } catch {
+      /* card-only is fine */
+    }
     return {
       id,
       meta: {
@@ -64,44 +77,47 @@ async function loadLocal(id: string): Promise<StoredPass | null> {
   }
 }
 
+async function getBlobStore() {
+  const { getStore } = await import("@netlify/blobs");
+  return getStore("passes");
+}
+
 async function saveBlobs(
   id: string,
   card: Buffer,
-  og: Buffer,
   meta: PassMeta,
   contentType: string
 ) {
-  const { getStore } = await import("@netlify/blobs");
-  const store = getStore("passes");
-  const cardBytes = Uint8Array.from(card);
-  const ogBytes = Uint8Array.from(og);
+  const store = await getBlobStore();
+  // Copy into a standalone ArrayBuffer (Netlify Blobs rejects TypedArray views).
+  const bytes = new Uint8Array(card);
+  const ab = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  );
 
   await Promise.all([
-    store.set(`pass/${id}/card`, cardBytes.buffer, {
-      metadata: { contentType },
-    }),
-    store.set(`pass/${id}/og`, ogBytes.buffer, {
-      metadata: { contentType },
-    }),
+    store.set(`pass/${id}/card`, ab, { metadata: { contentType } }),
     store.setJSON(`pass/${id}/meta`, { ...meta, contentType }),
   ]);
 }
 
 async function loadBlobs(id: string): Promise<StoredPass | null> {
   try {
-    const { getStore } = await import("@netlify/blobs");
-    const store = getStore("passes");
+    const store = await getBlobStore();
     const meta = (await store.get(`pass/${id}/meta`, {
       type: "json",
     })) as (PassMeta & { contentType?: string }) | null;
     if (!meta) return null;
 
-    const [card, og] = await Promise.all([
-      store.get(`pass/${id}/card`, { type: "arrayBuffer" }),
-      store.get(`pass/${id}/og`, { type: "arrayBuffer" }),
-    ]);
-    if (!card || !og) return null;
+    let card = await store.get(`pass/${id}/card`, { type: "arrayBuffer" });
+    // Older shares stored a separate og blob — fall back to it.
+    if (!card) {
+      card = await store.get(`pass/${id}/og`, { type: "arrayBuffer" });
+    }
+    if (!card) return null;
 
+    const buf = Buffer.from(card);
     return {
       id,
       meta: {
@@ -110,26 +126,19 @@ async function loadBlobs(id: string): Promise<StoredPass | null> {
         mode: meta.mode === "pfp" ? "pfp" : "id",
         createdAt: meta.createdAt,
       },
-      card: Buffer.from(card),
-      og: Buffer.from(og),
+      card: buf,
+      og: buf,
       contentType: meta.contentType || "image/jpeg",
     };
-  } catch {
+  } catch (error) {
+    console.error("Blob load failed", error);
     return null;
   }
 }
 
-function onNetlify() {
-  return Boolean(
-    process.env.NETLIFY ||
-      process.env.NETLIFY_BLOBS_CONTEXT ||
-      process.env.NETLIFY_DEV
-  );
-}
-
 export async function savePass(input: {
   card: Buffer;
-  og: Buffer;
+  og?: Buffer;
   meta: Omit<PassMeta, "createdAt">;
   contentType: string;
 }): Promise<string> {
@@ -137,11 +146,15 @@ export async function savePass(input: {
   const meta: PassMeta = { ...input.meta, createdAt: new Date().toISOString() };
 
   if (onNetlify()) {
-    await saveBlobs(id, input.card, input.og, meta, input.contentType);
-  } else {
-    await saveLocal(id, input.card, input.og, meta, input.contentType);
+    try {
+      await saveBlobs(id, input.card, meta, input.contentType);
+      return id;
+    } catch (error) {
+      console.error("Blob save failed, falling back to local", error);
+    }
   }
 
+  await saveLocal(id, input.card, meta, input.contentType);
   return id;
 }
 

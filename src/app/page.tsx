@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Generator from "@/components/Generator";
 import ScrollToStudio from "@/components/ScrollToStudio";
+import DeployLinkCopy from "@/components/DeployLinkCopy";
+import { DEPLOY_HOST, DEPLOY_URL } from "@/lib/site";
 
 const TICKER = [
   "GOA, INDIA · 28–31 OCT 2026",
@@ -9,6 +11,7 @@ const TICKER = [
   "TASK #1 · FRAME / ID GENERATOR",
   "AI × CRYPTO RESIDENCY",
   "2:47 PM STUDIO",
+  DEPLOY_HOST,
 ];
 
 export default function Home() {
@@ -29,6 +32,14 @@ export default function Home() {
           </span>
         </a>
         <div className="flex items-center gap-3">
+          <a
+            href={DEPLOY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden border-2 border-black bg-white px-3 py-1 font-[family-name:var(--font-mono)] text-[10px] font-semibold tracking-wider text-black uppercase sm:inline-flex"
+          >
+            {DEPLOY_HOST}
+          </a>
           <span className="inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#fee101] px-3 py-1 font-[family-name:var(--font-mono)] text-[10px] font-semibold tracking-wider uppercase">
             <span className="live-dot h-2 w-2 rounded-full bg-[#0b6839]" />
             Live studio
@@ -129,16 +140,21 @@ export default function Home() {
 
             <div className="relative overflow-hidden border-2 border-black bg-[#0b6839]">
               <Image
-                src="/brand/details.png"
-                alt="Inside HH Goa"
+                src="/brand/coconut-beach.png"
+                alt="Coconut Beach · Tropical Paradise"
                 width={960}
                 height={540}
-                className="h-44 w-full object-cover object-center opacity-90 sm:h-52"
+                className="h-44 w-full object-cover object-[center_55%] sm:h-52"
               />
-              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/80 to-transparent px-4 py-3">
-                <p className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.16em] text-[#fee101] uppercase">
-                  4 days · one rhythm · everything intentional
-                </p>
+              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/85 to-transparent px-4 py-3">
+                <div>
+                  <p className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.16em] text-[#fee101] uppercase">
+                    Explore Coconut Beach · Tropical Paradise
+                  </p>
+                  <p className="mt-1 font-[family-name:var(--font-mono)] text-[9px] tracking-wide text-[#fffbe8]/75">
+                    Surf Point · Paradise Cove · Hammock Haven
+                  </p>
+                </div>
                 <Image
                   src="/brand/goa_hindi.svg"
                   alt=""
@@ -176,28 +192,21 @@ export default function Home() {
               on the sand.
             </p>
           </div>
-          <div className="border-2 border-[#fee101] bg-black/35 p-5 backdrop-blur-sm">
-            <p className="font-[family-name:var(--font-mono)] text-[11px] tracking-[0.16em] text-[#fee101] uppercase">
-              Residency
-            </p>
-            <p className="mt-2 font-[family-name:var(--font-display)] text-3xl text-[#fffbe8]">
-              28–31 Oct 2026
-            </p>
-            <a
-              href="https://hhgoa.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex border-2 border-black bg-[#fee101] px-4 py-2.5 text-sm font-bold text-black"
-            >
-              Visit hhgoa.com ↗
-            </a>
-          </div>
+          <DeployLinkCopy />
         </div>
       </section>
 
       <footer className="border-t-2 border-black bg-[#fffbe8] px-5 py-5 sm:px-8">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 font-[family-name:var(--font-mono)] text-[11px] text-black/55">
           <span>© 2026 HH-Goa · FrameInGoa task</span>
+          <a
+            href={DEPLOY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0b6839] hover:underline"
+          >
+            {DEPLOY_HOST}
+          </a>
           <span>#FrameInGoa · photo stays in browser until you share</span>
         </div>
       </footer>
